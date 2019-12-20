@@ -9,8 +9,23 @@ and open the template in the editor.
         <title>TODO supply a title</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="shader.js" defer></script>
+        <script src="MV.js" defer></script>
+        <script src="initialize.js" defer></script>
+        <script src="app.js" defer></script>
+        <script src="jquery.min.js"></script>
     </head>
+    <style>
+        body {
+            padding:0;
+            margin:0;
+            overflow:hidden;
+        }
+    </style>
     <body>
-        <div>TODO write content</div>
+        <canvas id="glCanvas" width="800" height="800"></canvas>
+        <img id = "brickTex" src = "brick.bmp" hidden></img>
+        <img id = "sandTex" src = "sand.bmp" hidden></img>
+
     </body>
 </html>
