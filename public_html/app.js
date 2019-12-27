@@ -45,14 +45,36 @@ var eye;
 var near = 0.3;
 var far = 500.0;
 var radius = 5.0;
-var fovy = 45.0;
-var cameraTranslation = vec3(0.0, 0.0, 0.0);
-var at = vec3(0.0, 0.0, 0.0);
+var fovy = 70.0;
+var cameraTranslation = vec3(20.0, 10.0, 10.0);
+var at = vec3(25.0, 0.0, 15.0);
 var up = vec3(0.0, 1.0, 0.0);
 var aspect = 1.0;
 
+// Camera control parameters
+var pitchAngle = 0;
+var minPitchAngle = -90;
+var maxPitchAngle = 90;
 
-var i, j;
+var yawAngle = 0;
+var minYawAngle = -90;
+var maxYawAngle = 90;
+
+var rollCamera = false;
+
+var rollAngle = 0;
+var minRollAngle = -180;
+var maxRollAngle = 180; 
+
+var trackLeftRight = 0;
+var pushInPullOut = 0;
+var craneUpDown = 0;
+
+var step = 0.5;
+
+var fov = 30;
+var fovMin = 10;
+var fovMax = 160;
 
 
 var texCoord = [
@@ -70,23 +92,22 @@ var vertices = [
     vec4(-0.5,  0.0, -0.5, 1.0)
 ];
 
+var planeCoord = [vec4(0.0, 0.0, 100.0, 1.0), vec4(0.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 0.0, 1.0),
+                    vec4(100.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 100.0, 1.0), vec4(100.0, 0.0, 0.0, 1.0)];
+
 function getPyramidVertex (index, i, j) {
     switch (index) {
         case 0:
             return vec4((i*4) + 1, 0.0, (j*4) + 3, 1.0);
-            
             break;
         case 1:
             return vec4((i*4) + 2, 1.0, (j*4) + 2, 1.0);
             break;
         case 2:
             return vec4((i*4) + 1, 0.0, (j*4) + 1, 1.0);
-            
-            
             break;        
         case 3:
             return vec4((i*4) + 3, 0.0, (j*4) + 1, 1.0);
-            
             break;
         case 4:
             return vec4((i*4) + 3, 0.0, (j*4) + 3, 1.0);
@@ -115,8 +136,8 @@ function triangle(a, b, c, i, j) {
 }
 
 function pyramid() {
-    for (i = 0; i < 25; i++) {
-        for (j = 0; j < 25; j++) {
+    for (var i = 0; i < 25; i++) {
+        for (var j = 0; j < 25; j++) {
             triangle(1, 0, 2, i, j);
             triangle(1, 2, 3, i, j);
             triangle(1, 3, 4, i, j);
@@ -211,6 +232,17 @@ window.onload = function init() {
             // P key
             case 80:
                 break;
+            case 33:
+                console.log("page up");
+                at[1] += 0.1;
+                cameraTranslation[1] += 0.1;
+                break;
+            // page down key
+            case 34:
+                console.log("page down");
+                at[1] -= 0.1;
+                cameraTranslation[1] -= 0.1;
+                break;
             // e key
             case 69: 
                if(document.pointerLockElement === canvas ||
@@ -247,10 +279,7 @@ function render(){
 
     if(flag) rotateTheta[axis] += 2.0;
 
-    modelViewMatrix = mat4();
-    modelViewMatrix = mult(modelViewMatrix, rotate(rotateTheta[xAxis], vec3(1, 0, 0)));
-    modelViewMatrix = mult(modelViewMatrix, rotate(rotateTheta[yAxis], vec3(0, 1, 0)));
-    modelViewMatrix = mult(modelViewMatrix, rotate(rotateTheta[zAxis], vec3(0, 0, 1)));
+    
     ambientProduct = mult(lightAmbient, materialAmbient);
     
     eye = vec3(radius * Math.sin(theta) * Math.cos(phi), 
@@ -258,6 +287,9 @@ function render(){
     eye = add(eye, cameraTranslation);
     modelViewMatrix = lookAt(eye, at, up);
     projectionMatrix = perspective(fovy, aspect, near, far);
+    
+    //projectionMatrix.rotate(phi, 1, 0, 0);
+    //projectionMatrix.rotate(theta, 0, 1, 0);
     
     gl.uniformMatrix4fv(gl.getUniformLocation(program,
             "uModelViewMatrix"), false, flatten(modelViewMatrix));
