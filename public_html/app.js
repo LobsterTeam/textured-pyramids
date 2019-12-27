@@ -32,9 +32,11 @@ var fovy = 45.0;    // ne kadar fovy o kadar uzak
 var surfaceVertex = [vec3(-10.0, 0.0, 10.0), vec3(-10.0, 0.0, -10.0), vec3(10.0, 0.0, -10.0), 
                     vec3(10.0, 0.0, -10.0), vec3(10.0, 0.0, 10.0), vec3(-10.0, 0.0, 10.0)];
                 
+var gl, teapotShader, texture;
+                
 var texCoord = [
     vec2(0, 0),
-    vec2(0, 1),
+    vec2(0.5, 1),
     vec2(1, 1),
     vec2(1, 0)
 ];
@@ -44,7 +46,7 @@ var vertices = [
         vec3(0.0, 1.0, 0.0),
         vec3(0.5,  0.0, 0.5),
         vec3(0.5,  0.0,  -0.5),
-        vec3(-0.5,  0.0, -0.5),
+        vec3(-0.5,  0.0, -0.5)
     ];
 var aspect = 1.0;
 
@@ -71,33 +73,48 @@ function texturedPyramid()
     pyramid(1, 4, 0);
 }
 
+function configureTexture( image ) {
+    texture = gl.createTexture();
+    gl.bindTexture( gl.TEXTURE_2D, texture );
+    console.log(image);
+    gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image );
+    //gl.generateMipmap( gl.TEXTURE_2D );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_LINEAR );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST );
+    //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
+    console.log(teapotShader);
+    gl.uniform1i(gl.getUniformLocation(teapotShader, "texture2d"), 0);
+}
+
+function rafAsync() {
+    return new Promise(resolve => {
+        requestAnimationFrame(resolve); //faster than set time out
+    });
+}
+
+async function getImageFromHtml(id) {
+    const element = document.getElementById(id);
+    while (element === null) {
+        await rafAsync();
+    }
+    return element;
+}
 
 
 function main() {
     const canvas = document.querySelector("#glCanvas");
     canvas.height = $(window).height();
     canvas.width = $(window).width();
-    const gl = canvas.getContext("webgl2");
+    gl = canvas.getContext("webgl2");
 
     if (!gl) {
         alert("Unable to initialize WebGL. Your browser or machine may not support it.");
         return;
     }
     
-    function configureTexture( image ) {
-    texture = gl.createTexture();
-    gl.bindTexture( gl.TEXTURE_2D, texture );
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGB, 
-         gl.RGB, gl.UNSIGNED_BYTE, image );
-    gl.generateMipmap( gl.TEXTURE_2D );
-    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, 
-                      gl.NEAREST_MIPMAP_LINEAR );
-    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST );
     
-    gl.uniform1i(gl.getUniformLocation(program, "texture2d"), 0);
-}
+
     
     texturedPyramid();
     
@@ -112,7 +129,8 @@ function main() {
     var type = gl.FLOAT;
     
 
-    const teapotShader = initShaderProgram(gl, vertexShader, teapotFragmentShader);
+    teapotShader = initShaderProgram(gl, vertexShader, teapotFragmentShader);
+    gl.useProgram(teapotShader);
     const teapotBuffer = gl.createBuffer();
     gl.enableVertexAttribArray(gl.getAttribLocation(teapotShader, 'i_position'));
     var shaderRotateTheta = gl.getUniformLocation(teapotShader, 'u_rotate_theta');
@@ -166,35 +184,42 @@ function main() {
         gl.enableVertexAttribArray( vTexCoord );
         
         // DRAW TEAPOT
+        console.log(positionsArray.length);
         gl.drawArrays(gl.TRIANGLES, offset, positionsArray.length);
  
         // PLANE
-        gl.bindBuffer(gl.ARRAY_BUFFER, planeBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(surfaceVertex), gl.STATIC_DRAW);
+        //gl.bindBuffer(gl.ARRAY_BUFFER, planeBuffer);
+        //gl.bufferData(gl.ARRAY_BUFFER, flatten(surfaceVertex), gl.STATIC_DRAW);
         
         // PLANE POSITIONS
-        gl.vertexAttribPointer(gl.getAttribLocation(planeShader, 'i_position'),
-                numOfComponents, type, normalize, stride, offset);
-        gl.useProgram(planeShader);
+        //gl.vertexAttribPointer(gl.getAttribLocation(planeShader, 'i_position'),
+                //numOfComponents, type, normalize, stride, offset);
+        //gl.useProgram(planeShader);
 
         // PLANE UNIFORMS
-        gl.uniform1f(planeTheta, 0.0);
-        gl.uniformMatrix4fv(planeModelView, false, flatten(modelViewMatrix));
-        gl.uniformMatrix4fv(planeProjection, false, flatten(projectionMatrix));
+       //gl.uniform1f(planeTheta, 0.0);
+       // gl.uniformMatrix4fv(planeModelView, false, flatten(modelViewMatrix));
+        //gl.uniformMatrix4fv(planeProjection, false, flatten(projectionMatrix));
 
         // DRAW PLANE
-        gl.drawArrays(gl.TRIANGLES, 0, surfaceVertex.length);
+       // gl.drawArrays(gl.TRIANGLES, 0, surfaceVertex.length);
         
         //if (rotate){
             requestAnimationFrame(render);
         //}
     }
     
-    var image = document.getElementById("texImage");
- 
+    //getImageFromHtml("brickTex").then((image) => {
+    //    console.log(image);
+    //    configureTexture(image);
+        
+    //});
+    
+    var image = document.getElementById("brickTex");
+     render();
+
     configureTexture( image );
     
-    render();
 
     document.addEventListener('keydown', function(event) {
     

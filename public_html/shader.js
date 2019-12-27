@@ -36,7 +36,7 @@ const teapotFragmentShader = `#version 300 es
     out vec4 o_color;
     
     void main() {
-        o_color = vec4(170.0 / 255.0, 178.0 / 255.0, 167.0 / 255.0, 1.0) * texture(texture2d * fTexCoord);
+        o_color = vec4(170.0 / 255.0, 178.0 / 255.0, 167.0 / 255.0, 1.0) * texture(texture2d, fTexCoord);
     }
 `;
 
