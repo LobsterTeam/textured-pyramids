@@ -19,9 +19,7 @@ const vertexShader = `#version 300 es
     uniform vec4 uLightPosition;
     uniform float uShininess;
 
-    void main()
-    {
-
+    void main() {
 
         vec3 pos = -(uModelViewMatrix * aPosition).xyz;
 
@@ -61,23 +59,20 @@ const vertexShader = `#version 300 es
     }
 `;
 
-const teapotFragmentShader = `#version 300 es
+const fragmentShader = `#version 300 es
 
     precision mediump float;
+    
+    in vec4 vColor;
+    in vec2 fTexCoord;
 
+    uniform sampler2D texture2d;
 
-in vec4 vColor;
-in vec2 fTexCoord;
+    out vec4 fColor;
 
-uniform sampler2D texture2d;
-
-out vec4 fColor;
-
-void
-main()
-{
-    fColor = vec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 1.0) * texture(texture2d, fTexCoord);
-}
+    void main() {
+        fColor = vec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 1.0) * texture(texture2d, fTexCoord);
+    }
 `;
 
 const planeFragmentShader = `#version 300 es
