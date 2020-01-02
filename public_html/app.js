@@ -123,12 +123,16 @@ function calculatePlaneNormals () {
     normal = vec3(normal);
     
     planeNormals.push(normal);
+    planeNormals.push(normal);
+    planeNormals.push(normal);
     
     var t1 = subtract(planeCoord[5], planeCoord[4]);
     var t2 = subtract(planeCoord[3], planeCoord[4]);
     var normal = cross(t1, t2);
     normal = vec3(normal);
     
+    planeNormals.push(normal);
+    planeNormals.push(normal);
     planeNormals.push(normal);
 }
 
@@ -178,12 +182,12 @@ window.onload = function init() {
     canvas = document.getElementById("glCanvas");
     gl = canvas.getContext('webgl2');
     if (!gl) alert( "WebGL 2.0 isn't available");
-    //gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    //gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     
     pyramid();
-    calculatePlaneNormals();
+    calculatePlaneNormals();        // TODO
     
     var diffuseProduct = mult(lightDiffuse, materialDiffuse);
     var specularProduct = mult(lightSpecular, materialSpecular);
@@ -193,23 +197,23 @@ window.onload = function init() {
     var brickImage = document.getElementById("brickTex");
     var sandImage = document.getElementById("sandTex");
 
-    // PYRAMID
-    var pyramidProgram = initShaderProgram(gl, vertexShader, fragmentShader);
-    var pyramidNormalBuffer = gl.createBuffer();
-    var pyramidNormalLoc = gl.getAttribLocation(pyramidProgram, "aNormal");
-    var pyramidVertexBuffer = gl.createBuffer();
-    var pyramidPositionLoc = gl.getAttribLocation(pyramidProgram, "aPosition");
-    var pyramidTexBuffer = gl.createBuffer();
-    var pyramidTexLoc = gl.getAttribLocation(pyramidProgram, "vTexCoord");
+    var program = initShaderProgram(gl, vertexShader, fragmentShader);
+    var normalBuffer = gl.createBuffer();
+    var normalLoc = gl.getAttribLocation(program, "aNormal");
+    var vertexBuffer = gl.createBuffer();
+    var positionLoc = gl.getAttribLocation(program, "aPosition");
+    var texBuffer = gl.createBuffer();
+    var texLoc = gl.getAttribLocation(program, "vTexCoord");
     
-    var pyramidDiffuse = gl.getUniformLocation(pyramidProgram, "uDiffuseProduct");
-    var pyramidSpecular = gl.getUniformLocation(pyramidProgram, "uSpecularProduct");
-    var pyramidLightPos = gl.getUniformLocation(pyramidProgram, "uLightPosition");
-    var pyramidShin = gl.getUniformLocation(pyramidProgram, "uShininess");
-    var pyramidProjection = gl.getUniformLocation(pyramidProgram, "uProjectionMatrix");
-    var pyramidAmbient = gl.getUniformLocation(pyramidProgram, "uAmbientProduct");
-    var pyramidMV = gl.getUniformLocation(pyramidProgram, "uModelViewMatrix");
-    var limitLocation = gl.getUniformLocation(pyramidProgram, "u_limit");
+    // UNIFORMS
+    var diffuseLoc = gl.getUniformLocation(program, "uDiffuseProduct");
+    var specularLoc = gl.getUniformLocation(program, "uSpecularProduct");
+    var lightPosLoc = gl.getUniformLocation(program, "uLightPosition");
+    var shinLoc = gl.getUniformLocation(program, "uShininess");
+    var projectionLoc = gl.getUniformLocation(program, "uProjectionMatrix");
+    var ambientLoc = gl.getUniformLocation(program, "uAmbientProduct");
+    var MVLoc = gl.getUniformLocation(program, "uModelViewMatrix");
+    var limitLocation = gl.getUniformLocation(program, "u_limit");
 
     render();
     
@@ -232,73 +236,69 @@ window.onload = function init() {
         //projectionMatrix.rotate(theta, 0, 1, 0);
         
         // PYRAMID NORMALS
-        gl.useProgram(pyramidProgram);
-        gl.bindBuffer(gl.ARRAY_BUFFER, pyramidNormalBuffer);
+        gl.useProgram(program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(pyramidNormalLoc, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(pyramidNormalLoc);
+        gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(normalLoc);
 
         // PYRAMID POSITIONS
-        gl.bindBuffer(gl.ARRAY_BUFFER, pyramidVertexBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(positionsArray), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(pyramidPositionLoc, 4, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(pyramidPositionLoc);
+        gl.vertexAttribPointer(positionLoc, 4, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(positionLoc);
 
         // PYRAMID TEXTURES
-        gl.bindBuffer(gl.ARRAY_BUFFER, pyramidTexBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoordsArray), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(pyramidTexLoc, 2, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray(pyramidTexLoc);
+        gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray(texLoc);
 
         // PYRAMID UNIFORMS
-        gl.uniform4fv(pyramidDiffuse, diffuseProduct );
-        gl.uniform4fv(pyramidSpecular, specularProduct );
-        gl.uniform4fv(pyramidLightPos, lightPosition );
-        gl.uniform1f(pyramidShin, materialShininess);
-        gl.uniformMatrix4fv(pyramidProjection, false, flatten(projectionMatrix));
-        gl.uniform4fv(pyramidAmbient, ambientProduct);
-        gl.uniformMatrix4fv(pyramidMV, false, flatten(modelViewMatrix));
-        configureTexture(pyramidProgram, brickImage);
-        
+        gl.uniform4fv(diffuseLoc, diffuseProduct );
+        gl.uniform4fv(specularLoc, specularProduct );
+        gl.uniform4fv(lightPosLoc, lightPosition );
+        gl.uniform1f(shinLoc, materialShininess);
+        gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
+        gl.uniform4fv(ambientLoc, ambientProduct);
+        gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
         gl.uniform1f(limitLocation, Math.cos(u_limit));
+        configureTexture(program, brickImage);
 
         // DRAW PYRAMIDS
         gl.drawArrays(gl.TRIANGLES, 0, positionsArray.length);
         
-        
-        
-        // PYRAMID NORMALS
-        gl.useProgram(pyramidProgram);
-        gl.bindBuffer(gl.ARRAY_BUFFER, pyramidNormalBuffer);
+        // PLANE NORMALS
+        gl.useProgram(program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(planeNormals), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(pyramidNormalLoc, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(pyramidNormalLoc);
+        gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(normalLoc);
 
-        // PYRAMID POSITIONS
-        gl.bindBuffer(gl.ARRAY_BUFFER, pyramidVertexBuffer);
+        // PLANE POSITIONS
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(planeCoord), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(pyramidPositionLoc, 4, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(pyramidPositionLoc);
+        gl.vertexAttribPointer(positionLoc, 4, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(positionLoc);
 
-        // PYRAMID TEXTURES
-        gl.bindBuffer(gl.ARRAY_BUFFER, pyramidTexBuffer);
+        // PLANE TEXTURES
+        gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoordsArray), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(pyramidTexLoc, 2, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray(pyramidTexLoc);
+        gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray(texLoc);
 
-        // PYRAMID UNIFORMS
-        gl.uniform4fv(pyramidDiffuse, diffuseProduct );
-        gl.uniform4fv(pyramidSpecular, specularProduct );
-        gl.uniform4fv(pyramidLightPos, lightPosition );
-        gl.uniform1f(pyramidShin, materialShininess);
-        gl.uniformMatrix4fv(pyramidProjection, false, flatten(projectionMatrix));
-        gl.uniform4fv(pyramidAmbient, ambientProduct);
-        gl.uniformMatrix4fv(pyramidMV, false, flatten(modelViewMatrix));
-        configureTexture(pyramidProgram, sandImage);
-        
+        // PLANE UNIFORMS
+        gl.uniform4fv(diffuseLoc, diffuseProduct );
+        gl.uniform4fv(specularLoc, specularProduct );
+        gl.uniform4fv(lightPosLoc, lightPosition );
+        gl.uniform1f(shinLoc, materialShininess);
+        gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
+        gl.uniform4fv(ambientLoc, ambientProduct);
+        gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
         gl.uniform1f(limitLocation, Math.cos(u_limit));
+        configureTexture(program, sandImage);
 
-        // DRAW PYRAMIDS
+        // DRAW PLANE
         gl.drawArrays(gl.TRIANGLES, 0, planeCoord.length);
 
         requestAnimationFrame(render);
