@@ -10,7 +10,7 @@ var positionsArray = [];
 var normalsArray = [];
 var texCoordsArray = [];
 
-var lightPosition = vec4(10.0, 10.0, 10.0, 1.0);
+var lightPosition = vec3(10.0, 10.0, 10.0);
 var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0);
 var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
 var lightSpecular = vec4(10.0, 10.0, 10.0, 1.0);
@@ -182,8 +182,8 @@ window.onload = function init() {
     canvas = document.getElementById("glCanvas");
     gl = canvas.getContext('webgl2');
     if (!gl) alert( "WebGL 2.0 isn't available");
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    //gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    //gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     
     pyramid();
@@ -214,6 +214,9 @@ window.onload = function init() {
     var ambientLoc = gl.getUniformLocation(program, "uAmbientProduct");
     var MVLoc = gl.getUniformLocation(program, "uModelViewMatrix");
     var limitLocation = gl.getUniformLocation(program, "u_limit");
+    var viewWorldPos = gl.getUniformLocation(program, "u_viewWorldPosition");
+    //var worldInverseTransposeLocation = gl.getUniformLocation(program, "u_worldInverseTranspose");
+    var lightDirectionLoc = gl.getUniformLocation(program, "u_lightDirection");
 
     render();
     
@@ -231,6 +234,18 @@ window.onload = function init() {
         eye = add(eye, cameraTranslation);
         modelViewMatrix = lookAt(eye, at, up);
         projectionMatrix = perspective(fovy, aspect, near, far);
+        
+        var worldInverseMatrix = inverse(modelViewMatrix);
+        var worldInverseTransposeMatrix = transpose(worldInverseMatrix);
+        
+        var lmat = lookAt(eye, at, up);
+        // get the zAxis from the matrix
+        // negate it because lookAt looks down the -Z axis
+        var lightDirection = vec3(-lmat[2][0], -lmat[2][1],-lmat[2][2]);
+        console.log(lightDirection);
+        
+        
+
 
         //projectionMatrix.rotate(phi, 1, 0, 0);
         //projectionMatrix.rotate(theta, 0, 1, 0);
@@ -257,12 +272,16 @@ window.onload = function init() {
         // PYRAMID UNIFORMS
         gl.uniform4fv(diffuseLoc, diffuseProduct );
         gl.uniform4fv(specularLoc, specularProduct );
-        gl.uniform4fv(lightPosLoc, lightPosition );
+        gl.uniform3fv(lightPosLoc, lightPosition);
         gl.uniform1f(shinLoc, materialShininess);
         gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
         gl.uniform4fv(ambientLoc, ambientProduct);
         gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
         gl.uniform1f(limitLocation, Math.cos(u_limit));
+        gl.uniform4fv(viewWorldPos, vec4(cameraTranslation, 1.0) );
+        //gl.uniformMatrix4fv(worldInverseTransposeLocation, false, worldInverseTransposeMatrix);
+        gl.uniform3fv(lightDirectionLoc, lightDirection);
+        
         configureTexture(program, brickImage);
 
         // DRAW PYRAMIDS
@@ -290,12 +309,16 @@ window.onload = function init() {
         // PLANE UNIFORMS
         gl.uniform4fv(diffuseLoc, diffuseProduct );
         gl.uniform4fv(specularLoc, specularProduct );
-        gl.uniform4fv(lightPosLoc, lightPosition );
+        gl.uniform3fv(lightPosLoc, lightPosition);
         gl.uniform1f(shinLoc, materialShininess);
         gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
         gl.uniform4fv(ambientLoc, ambientProduct);
         gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
         gl.uniform1f(limitLocation, Math.cos(u_limit));
+        gl.uniform4fv(viewWorldPos,  vec4(cameraTranslation, 1.0) );
+        //gl.uniformMatrix4fv(worldInverseTransposeLocation, false, worldInverseTransposeMatrix);
+        gl.uniform3fv(lightDirectionLoc, lightDirection);
+
         configureTexture(program, sandImage);
 
         // DRAW PLANE

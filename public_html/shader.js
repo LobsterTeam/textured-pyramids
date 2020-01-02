@@ -10,57 +10,45 @@ const vertexShader = `#version 300 es
     in  vec3 aNormal;
     in  vec2 vTexCoord;
 
-    out vec4 vColor;
+    //out vec4 vColor;
     out vec2 fTexCoord;
+    out vec3 v_normal;
+    out vec3 v_surfaceToLight;
+    out vec3 v_surfaceToView;
+    out float u_shininess;
+    out vec3 lightDir;
+    out float limit;
+
 
     uniform vec4 uAmbientProduct, uDiffuseProduct, uSpecularProduct;
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
-    uniform vec4 uLightPosition;
+    uniform vec3 uLightPosition;        // 3
     uniform float u_limit;
     uniform float uShininess;
+    
+    uniform vec4 u_viewWorldPosition;       // yeni
+    //uniform mat4 u_worldInverseTranspose;
+    uniform vec3 u_lightDirection;
 
     void main() {
-
-        vec3 pos = (uModelViewMatrix * aPosition).xyz;
-
-        //fixed light postion
-
-        vec3 light = uLightPosition.xyz;
-        vec3 L = normalize(light - pos);
-
-
-        vec3 V = -pos;
-        vec3 H = normalize(L + V);
-
-        vec4 NN = vec4(aNormal,1.0);
-
-        // Transform vertex normal into eye coordinates
-
-        mat3 normalMatrix = mat3(transpose(inverse(uModelViewMatrix)));
-        vec3 N = normalize(normalMatrix * aNormal).xyz;
-
-        float specular = 0.0;
-        float fLight = 0.0;
-
-
-        float dotFromDirection = dot(L, V);
-        if(dotFromDirection >= u_limit){
-            fLight = dot(normalize(aNormal), L);
-            if( fLight > 0.0 ) {
-                //specular = vec4(0.0, 0.0, 0.0, 1.0);
-                specular = pow(dot(normalize(aNormal),H),uShininess);
-            }
-        } 
+        
+        
+        mat4 u_worldInverseTranspose = transpose(inverse(uModelViewMatrix));
+        v_normal = mat3(u_worldInverseTranspose) * aNormal;
+        vec3 surfaceWorldPosition = (uModelViewMatrix * aPosition).xyz;
+        v_surfaceToLight = uLightPosition - surfaceWorldPosition;
+        v_surfaceToView = u_viewWorldPosition.xyz - surfaceWorldPosition;
+        
 
 
 
-        gl_Position = uProjectionMatrix * uModelViewMatrix *aPosition;
-        vColor.rgb *= fLight;
-        vColor.rgb += specular;
 
-        vColor.a = 1.0;
+        lightDir = u_lightDirection;
+        u_shininess = uShininess;
+        limit = u_limit;
         fTexCoord = vTexCoord;
+        gl_Position = uProjectionMatrix * uModelViewMatrix *aPosition;
     }
 `;
 
@@ -68,15 +56,52 @@ const fragmentShader = `#version 300 es
 
     precision mediump float;
     
-    in vec4 vColor;
+    //in vec4 vColor;
     in vec2 fTexCoord;
+    in vec3 v_normal;
+    in vec3 v_surfaceToLight;
+    in vec3 v_surfaceToView;
+    in vec3 lightDir;
+    in float u_shininess;
+    in float limit;
 
     uniform sampler2D texture2d;
 
     out vec4 fColor;
 
     void main() {
-        fColor = vColor * texture(texture2d, fTexCoord);
+        
+        vec3 normal = normalize(v_normal);
+        vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
+        vec3 surfaceToViewDirection = normalize(v_surfaceToView);
+        vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
+
+        float light = 0.0;
+        float specular = 0.0;
+        float dotFromDirection = dot(surfaceToLightDirection, 
+                                     -lightDir);
+        if (dotFromDirection >= limit) {
+            light = dot(normal, surfaceToLightDirection);
+            //light = 1.0;
+            if (light > 0.0) {
+                //specular = 1.0;
+                specular = pow(dot(normal, halfVector), u_shininess);
+            }
+        }
+
+        //fColor = u_color;
+
+        // Lets multiply just the color portion (not the alpha)
+        // by the light
+        fColor = vec4(1.0, 1.0, 1.0, 1.0);
+        fColor.rgb *= light;
+
+        // Just add in the specular
+        fColor.rgb += specular;
+        fColor.a = 1.0;
+        
+        
+        fColor = fColor * texture(texture2d, fTexCoord);
     }
 `;
 
