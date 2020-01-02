@@ -17,11 +17,12 @@ const vertexShader = `#version 300 es
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
     uniform vec4 uLightPosition;
+    uniform float u_limit;
     uniform float uShininess;
 
     void main() {
 
-        vec3 pos = -(uModelViewMatrix * aPosition).xyz;
+        vec3 pos = (uModelViewMatrix * aPosition).xyz;
 
         //fixed light postion
 
@@ -29,30 +30,34 @@ const vertexShader = `#version 300 es
         vec3 L = normalize(light - pos);
 
 
-        vec3 E = normalize(-pos);
-        vec3 H = normalize(L + E);
+        vec3 V = -pos;
+        vec3 H = normalize(L + V);
 
-        vec4 NN = vec4(aNormal,0);
+        vec4 NN = vec4(aNormal,1.0);
 
         // Transform vertex normal into eye coordinates
 
-        vec3 N = normalize((uModelViewMatrix*NN).xyz);
+        mat3 normalMatrix = mat3(transpose(inverse(uModelViewMatrix)));
+        vec3 N = normalize(normalMatrix * aNormal).xyz;
 
-        // Compute terms in the illumination equation
-        vec4 ambient = uAmbientProduct;
+        float specular = 0.0;
+        float fLight = 0.0;
 
-        float Kd = max(dot(L, N), 0.0);
-        vec4  diffuse = Kd*uDiffuseProduct;
 
-        float Ks = pow( max(dot(N, H), 0.0), uShininess );
-        vec4  specular = Ks * uSpecularProduct;
+        float dotFromDirection = dot(L, V);
+        if(dotFromDirection >= u_limit){
+            fLight = dot(normalize(aNormal), L);
+            if( fLight > 0.0 ) {
+                //specular = vec4(0.0, 0.0, 0.0, 1.0);
+                specular = pow(dot(normalize(aNormal),H),uShininess);
+            }
+        } 
 
-        if( dot(L, N) < 0.0 ) {
-              specular = vec4(0.0, 0.0, 0.0, 1.0);
-        }
+
 
         gl_Position = uProjectionMatrix * uModelViewMatrix *aPosition;
-        vColor = ambient + diffuse +specular;
+        vColor.rgb *= fLight;
+        vColor.rgb += specular;
 
         vColor.a = 1.0;
         fTexCoord = vTexCoord;
@@ -71,16 +76,7 @@ const fragmentShader = `#version 300 es
     out vec4 fColor;
 
     void main() {
-        fColor = vec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 1.0) * texture(texture2d, fTexCoord);
+        fColor = vColor * texture(texture2d, fTexCoord);
     }
 `;
 
-const planeFragmentShader = `#version 300 es
-
-    precision mediump float;
-    out vec4 o_color;
-    
-    void main() {
-        o_color = vec4(0.0 / 255.0, 0.0 / 255.0, 0.0 / 255.0, 1.0);
-    }
-`;

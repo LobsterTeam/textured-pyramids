@@ -10,10 +10,10 @@ var positionsArray = [];
 var normalsArray = [];
 var texCoordsArray = [];
 
-var lightPosition = vec4(1.0, 1.0, 1.0, 0.0);
+var lightPosition = vec4(10.0, 10.0, 10.0, 1.0);
 var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0);
 var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
-var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
+var lightSpecular = vec4(10.0, 10.0, 10.0, 1.0);
 
 var materialAmbient = vec4(1.0, 1.0, 1.0, 1.0);
 var materialDiffuse = vec4(1.0, 0.8, 0.0, 1.0);
@@ -42,7 +42,7 @@ var near = 0.3;
 var far = 500.0;
 var radius = 5.0;
 var fovy = 70.0;
-var cameraTranslation = vec3(20.0, 10.0, 10.0);
+var cameraTranslation = vec3(10.0, 10.0, 10.0);
 var at = vec3(25.0, 0.0, 15.0);
 var up = vec3(0.0, 1.0, 0.0);
 var aspect = 1.0;
@@ -72,6 +72,8 @@ var fov = 30;
 var fovMin = 10;
 var fovMax = 160;
 
+var u_limit = 20 * Math.PI/180.0;
+
 
 var texCoord = [
     vec2(0, 0),
@@ -90,6 +92,8 @@ var vertices = [
 
 var planeCoord = [vec4(0.0, 0.0, 100.0, 1.0), vec4(0.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 0.0, 1.0),
                     vec4(100.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 100.0, 1.0), vec4(0.0, 0.0, 100.0, 1.0)];
+                
+var planeNormals = [];
 
 function getPyramidVertex (index, i, j) {
     switch (index) {
@@ -109,6 +113,23 @@ function getPyramidVertex (index, i, j) {
             return vec4((i*4) + 3, 0.0, (j*4) + 3, 1.0);
             break;
     }
+}
+
+function calculatePlaneNormals () {
+    
+    var t1 = subtract(planeCoord[0], planeCoord[1]);
+    var t2 = subtract(planeCoord[2], planeCoord[1]);
+    var normal = cross(t1, t2);
+    normal = vec3(normal);
+    
+    planeNormals.push(normal);
+    
+    var t1 = subtract(planeCoord[5], planeCoord[4]);
+    var t2 = subtract(planeCoord[3], planeCoord[4]);
+    var normal = cross(t1, t2);
+    normal = vec3(normal);
+    
+    planeNormals.push(normal);
 }
 
 function triangle(a, b, c, i, j) {
@@ -157,10 +178,12 @@ window.onload = function init() {
     canvas = document.getElementById("glCanvas");
     gl = canvas.getContext('webgl2');
     if (!gl) alert( "WebGL 2.0 isn't available");
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    //gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     
     pyramid();
+    calculatePlaneNormals();
     
     var diffuseProduct = mult(lightDiffuse, materialDiffuse);
     var specularProduct = mult(lightSpecular, materialSpecular);
@@ -186,26 +209,9 @@ window.onload = function init() {
     var pyramidProjection = gl.getUniformLocation(pyramidProgram, "uProjectionMatrix");
     var pyramidAmbient = gl.getUniformLocation(pyramidProgram, "uAmbientProduct");
     var pyramidMV = gl.getUniformLocation(pyramidProgram, "uModelViewMatrix");
-    
-    //PLANE    
-    var planeProgram = initShaderProgram(gl, vertexShader, fragmentShader);
-    var planeNormalBuffer = gl.createBuffer();
-    var planeNormalLoc = gl.getAttribLocation(planeProgram, "aNormal");
-    var planeVertexBuffer = gl.createBuffer();
-    var planePositionLoc = gl.getAttribLocation(planeProgram, "aPosition");
-    var planeTexBuffer = gl.createBuffer();
-    var planeTexLoc = gl.getAttribLocation(planeProgram, "vTexCoord");
-    
-    var planeDiffuse = gl.getUniformLocation(planeProgram, "uDiffuseProduct");
-    var planeSpecular = gl.getUniformLocation(planeProgram, "uSpecularProduct");
-    var planeLightPos = gl.getUniformLocation(planeProgram, "uLightPosition");
-    var planeShin = gl.getUniformLocation(planeProgram, "uShininess");
-    var planeProjection = gl.getUniformLocation(planeProgram, "uProjectionMatrix");
-    var planeAmbient = gl.getUniformLocation(planeProgram, "uAmbientProduct");
-    var planeMV = gl.getUniformLocation(planeProgram, "uModelViewMatrix");
+    var limitLocation = gl.getUniformLocation(pyramidProgram, "u_limit");
 
     render();
-    
     
     function render(){
         // resize fonksiyonuna alinabilirler belki
@@ -253,40 +259,46 @@ window.onload = function init() {
         gl.uniform4fv(pyramidAmbient, ambientProduct);
         gl.uniformMatrix4fv(pyramidMV, false, flatten(modelViewMatrix));
         configureTexture(pyramidProgram, brickImage);
+        
+        gl.uniform1f(limitLocation, Math.cos(u_limit));
 
         // DRAW PYRAMIDS
         gl.drawArrays(gl.TRIANGLES, 0, positionsArray.length);
         
-        // PLANE NORMALS
-        gl.useProgram(planeProgram);
-        gl.bindBuffer(gl.ARRAY_BUFFER, planeNormalBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(planeNormalLoc, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(planeNormalLoc);
+        
+        
+        // PYRAMID NORMALS
+        gl.useProgram(pyramidProgram);
+        gl.bindBuffer(gl.ARRAY_BUFFER, pyramidNormalBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(planeNormals), gl.STATIC_DRAW);
+        gl.vertexAttribPointer(pyramidNormalLoc, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(pyramidNormalLoc);
 
-        // PLANE POSITIONS
-        gl.bindBuffer(gl.ARRAY_BUFFER, planeVertexBuffer);
+        // PYRAMID POSITIONS
+        gl.bindBuffer(gl.ARRAY_BUFFER, pyramidVertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(planeCoord), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(planePositionLoc, 4, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(planePositionLoc);
+        gl.vertexAttribPointer(pyramidPositionLoc, 4, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(pyramidPositionLoc);
 
-        // PLANE TEXTURES
-        gl.bindBuffer(gl.ARRAY_BUFFER, planeTexBuffer);
+        // PYRAMID TEXTURES
+        gl.bindBuffer(gl.ARRAY_BUFFER, pyramidTexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoordsArray), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(planeTexLoc, 2, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray(planeTexLoc);
+        gl.vertexAttribPointer(pyramidTexLoc, 2, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray(pyramidTexLoc);
 
-        // PLANE UNIFORMS
-        gl.uniform4fv(planeDiffuse, diffuseProduct);
-        gl.uniform4fv(planeSpecular, specularProduct);
-        gl.uniform4fv(planeLightPos, lightPosition);
-        gl.uniform1f(planeShin, materialShininess);
-        gl.uniformMatrix4fv(planeProjection, false, flatten(projectionMatrix));
-        gl.uniform4fv(planeAmbient, ambientProduct);
-        gl.uniformMatrix4fv(planeMV, false, flatten(modelViewMatrix));
-        configureTexture(planeProgram, sandImage);
+        // PYRAMID UNIFORMS
+        gl.uniform4fv(pyramidDiffuse, diffuseProduct );
+        gl.uniform4fv(pyramidSpecular, specularProduct );
+        gl.uniform4fv(pyramidLightPos, lightPosition );
+        gl.uniform1f(pyramidShin, materialShininess);
+        gl.uniformMatrix4fv(pyramidProjection, false, flatten(projectionMatrix));
+        gl.uniform4fv(pyramidAmbient, ambientProduct);
+        gl.uniformMatrix4fv(pyramidMV, false, flatten(modelViewMatrix));
+        configureTexture(pyramidProgram, sandImage);
+        
+        gl.uniform1f(limitLocation, Math.cos(u_limit));
 
-        // DRAW PLANES
+        // DRAW PYRAMIDS
         gl.drawArrays(gl.TRIANGLES, 0, planeCoord.length);
 
         requestAnimationFrame(render);
@@ -312,6 +324,34 @@ window.onload = function init() {
                 at[1] -= 0.1;
                 cameraTranslation[1] -= 0.1;
                 break;
+            // up arrow
+            case 38:
+                console.log("up arrow");
+                lightPosition[0] += 0.1;
+                at[0] += 0.1;
+                cameraTranslation[0] += 0.1;
+                break;
+            // down arrow
+            case 40:
+                console.log("down arrow");
+                lightPosition[0] -= 0.1;
+                at[0] -= 0.1;
+                cameraTranslation[0] -= 0.1;
+                break;
+            // right arrow
+            case 39:
+                console.log("right arrow");
+                at[2] += 0.1;
+                cameraTranslation[2] += 0.1;
+                lightPosition[2] += 0.1;
+                break;
+            // left arrow
+            case 37:
+                console.log("left arrow");
+                at[2] -= 0.1;
+                cameraTranslation[2] -= 0.1;
+                lightPosition[2] -= 0.1;
+                break;            
             // e key
             case 69: 
                if(document.pointerLockElement === canvas ||
