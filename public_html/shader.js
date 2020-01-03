@@ -74,14 +74,15 @@ const fragmentShader = `#version 300 es
         vec3 normal = normalize(v_normal);
         vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
         vec3 surfaceToViewDirection = normalize(v_surfaceToView);
-        vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
+        vec3 halfVector = normalize(surfaceToLightDirection);
 
         float light = 0.0;
         float specular = 0.0;
-        float dotFromDirection = dot(surfaceToLightDirection, 
-                                     -lightDir);
+        float dotFromDirection = dot(surfaceToLightDirection, -lightDir);
+        //light = 1.0;
+        //light = dotFromDirection;
         if (dotFromDirection >= limit) {
-            light = dot(normal, surfaceToLightDirection);
+            light = dot(normal, -surfaceToLightDirection);
             //light = 1.0;
             if (light > 0.0) {
                 //specular = 1.0;

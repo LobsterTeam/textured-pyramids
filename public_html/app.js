@@ -10,7 +10,7 @@ var positionsArray = [];
 var normalsArray = [];
 var texCoordsArray = [];
 
-var lightPosition = vec3(10.0, 10.0, 10.0);
+var lightPosition = vec3(10.0, 25.0, 10.0);
 var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0);
 var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
 var lightSpecular = vec4(10.0, 10.0, 10.0, 1.0);
@@ -42,8 +42,8 @@ var near = 0.3;
 var far = 500.0;
 var radius = 5.0;
 var fovy = 70.0;
-var cameraTranslation = vec3(10.0, 10.0, 10.0);
-var at = vec3(25.0, 0.0, 15.0);
+var cameraTranslation = vec3(0.0, 15.0, 0.0);
+var at2 = vec3(10.0, 0.0, 10.0);
 var up = vec3(0.0, 1.0, 0.0);
 var aspect = 1.0;
 
@@ -117,8 +117,8 @@ function getPyramidVertex (index, i, j) {
 
 function calculatePlaneNormals () {
     
-    var t1 = subtract(planeCoord[0], planeCoord[1]);
-    var t2 = subtract(planeCoord[2], planeCoord[1]);
+    var t1 = subtract(planeCoord[2], planeCoord[1]);
+    var t2 = subtract(planeCoord[0], planeCoord[1]);
     var normal = cross(t1, t2);
     normal = vec3(normal);
     
@@ -138,8 +138,8 @@ function calculatePlaneNormals () {
 
 function triangle(a, b, c, i, j) {
     
-    var t1 = subtract(getPyramidVertex(b, i, j),getPyramidVertex(a, i, j));
-    var t2 = subtract(getPyramidVertex(c, i, j), getPyramidVertex(b, i, j));
+    var t1 = subtract(getPyramidVertex(c, i, j),getPyramidVertex(b, i, j));
+    var t2 = subtract(getPyramidVertex(a, i, j), getPyramidVertex(b, i, j));
     var normal = cross(t1, t2);
     normal = vec3(normal);
 
@@ -232,18 +232,17 @@ window.onload = function init() {
         eye = vec3(radius * Math.sin(theta) * Math.cos(phi), 
                 radius * Math.sin(theta) * Math.sin(phi), radius * Math.cos(theta));
         eye = add(eye, cameraTranslation);
-        modelViewMatrix = lookAt(eye, at, up);
+        modelViewMatrix = lookAt(eye, at2, up);
         projectionMatrix = perspective(fovy, aspect, near, far);
         
         var worldInverseMatrix = inverse(modelViewMatrix);
         var worldInverseTransposeMatrix = transpose(worldInverseMatrix);
         
-        var lmat = lookAt(eye, at, up);
+        var lmat = lookAt(subtract(eye, cameraTranslation), at2, up);
         // get the zAxis from the matrix
         // negate it because lookAt looks down the -Z axis
-        var lightDirection = vec3(-lmat[2][0], -lmat[2][1],-lmat[2][2]);
-        console.log(lightDirection);
-        
+        var lightDirection = vec3(lmat[2][0], lmat[2][1], lmat[2][2]);      // eksi??
+        //console.log(lightDirection);
         
 
 
@@ -272,7 +271,7 @@ window.onload = function init() {
         // PYRAMID UNIFORMS
         gl.uniform4fv(diffuseLoc, diffuseProduct );
         gl.uniform4fv(specularLoc, specularProduct );
-        gl.uniform3fv(lightPosLoc, lightPosition);
+        gl.uniform3fv(lightPosLoc, subtract(eye, cameraTranslation));
         gl.uniform1f(shinLoc, materialShininess);
         gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
         gl.uniform4fv(ambientLoc, ambientProduct);
@@ -309,7 +308,7 @@ window.onload = function init() {
         // PLANE UNIFORMS
         gl.uniform4fv(diffuseLoc, diffuseProduct );
         gl.uniform4fv(specularLoc, specularProduct );
-        gl.uniform3fv(lightPosLoc, lightPosition);
+        gl.uniform3fv(lightPosLoc, subtract(eye, cameraTranslation));
         gl.uniform1f(shinLoc, materialShininess);
         gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
         gl.uniform4fv(ambientLoc, ambientProduct);
@@ -338,42 +337,42 @@ window.onload = function init() {
                 break;
             case 33:
                 console.log("page up");
-                at[1] += 0.1;
+                at2[1] += 0.1;
                 cameraTranslation[1] += 0.1;
                 break;
             // page down key
             case 34:
                 console.log("page down");
-                at[1] -= 0.1;
+                at2[1] -= 0.1;
                 cameraTranslation[1] -= 0.1;
                 break;
             // up arrow
             case 38:
                 console.log("up arrow");
-                lightPosition[0] += 0.1;
-                at[0] += 0.1;
+                //lightPosition[0] += 0.1;
+                at2[0] += 0.1;
                 cameraTranslation[0] += 0.1;
                 break;
             // down arrow
             case 40:
                 console.log("down arrow");
-                lightPosition[0] -= 0.1;
-                at[0] -= 0.1;
+                //lightPosition[0] -= 0.1;
+                at2[0] -= 0.1;
                 cameraTranslation[0] -= 0.1;
                 break;
             // right arrow
             case 39:
                 console.log("right arrow");
-                at[2] += 0.1;
+                at2[2] += 0.1;
                 cameraTranslation[2] += 0.1;
-                lightPosition[2] += 0.1;
+                //lightPosition[2] += 0.1;
                 break;
             // left arrow
             case 37:
                 console.log("left arrow");
-                at[2] -= 0.1;
+                at2[2] -= 0.1;
                 cameraTranslation[2] -= 0.1;
-                lightPosition[2] -= 0.1;
+                //lightPosition[2] -= 0.1;
                 break;            
             // e key
             case 69: 
