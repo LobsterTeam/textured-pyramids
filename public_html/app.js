@@ -28,6 +28,7 @@ var innerLimit = 10 * Math.PI/180.0;
 var outerLimit = 20 * Math.PI/180.0;
 var perVertexShading = 0.0;
 var spotlightOn = 1.0;
+var lightPosition, lightDirection, locationMat;
 
 
 function getPyramidVertex (index, i, j) {
@@ -134,15 +135,15 @@ window.onload = function init() {
     var texLoc = gl.getAttribLocation(program, "v_tex_coord");
     
     // UNIFORMS
+    var MVLoc = gl.getUniformLocation(program, "u_model_view_matrix");
+    var projectionLoc = gl.getUniformLocation(program, "u_projection_matrix");
+    var normalMatrixLoc = gl.getUniformLocation(program, "u_normal_matrix");
+    var viewWorldPos = gl.getUniformLocation(program, "u_view_world_position");
+    var lightDirectionLoc = gl.getUniformLocation(program, "v_light_direction");
     var lightPosLoc = gl.getUniformLocation(program, "u_light_position");
     var shinLoc = gl.getUniformLocation(program, "v_shininess");
-    var projectionLoc = gl.getUniformLocation(program, "u_projection_matrix");
-    var MVLoc = gl.getUniformLocation(program, "u_model_view_matrix");
     var innerLimitLocation = gl.getUniformLocation(program, "v_inner_limit");
     var outerLimitLocation = gl.getUniformLocation(program, "v_outer_limit");
-    var viewWorldPos = gl.getUniformLocation(program, "u_view_world_position");
-    var normalMatrixLoc = gl.getUniformLocation(program, "u_normal_matrix");
-    var lightDirectionLoc = gl.getUniformLocation(program, "v_light_direction");
     var perVertexShadingLoc = gl.getUniformLocation(program, "v_per_vertex_shading");
     var spotlightOnLoc = gl.getUniformLocation(program, "v_spotlight_on");
 
@@ -159,18 +160,30 @@ window.onload = function init() {
 
         eye = vec3(radius * Math.sin(theta) * Math.cos(phi), 
                 radius * Math.sin(theta) * Math.sin(phi), radius * Math.cos(theta));
+        lightPosition = eye;
         eye = add(eye, cameraTranslation);
         modelViewMatrix = lookAt(eye, at, up);
         projectionMatrix = perspective(fovy, aspect, near, far);
-        //projectionMatrix = ortho(-1, 1, -1, 1, -100, 100);
+        normalMatrix = transpose(inverse(modelViewMatrix));
         
-        var normalMatrix = transpose(inverse(modelViewMatrix));
-        
-        var lmat = lookAt(subtract(eye, cameraTranslation), at, up);
+        locationMat = lookAt(lightPosition, at, up);
         // get the zAxis from the matrix
         // negate it because lookAt looks down the -Z axis
-        var lightDirection = vec3(lmat[2][0], lmat[2][1], lmat[2][2]);      // eksi??
-        //
+        lightDirection = vec3(locationMat[2][0], locationMat[2][1], locationMat[2][2]);      // TODO eksi??
+        
+        // UNIFORMS
+        gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
+        gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
+        gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
+        gl.uniform4fv(viewWorldPos, vec4(cameraTranslation, 1.0) );        // TODO camera or eye?
+        gl.uniform3fv(lightDirectionLoc, lightDirection);
+        gl.uniform3fv(lightPosLoc, lightPosition);
+        gl.uniform1f(shinLoc, shininess);
+        gl.uniform1f(innerLimitLocation, Math.cos(innerLimit));
+        gl.uniform1f(outerLimitLocation, Math.cos(outerLimit));
+        gl.uniform1f(perVertexShadingLoc, perVertexShading);
+        gl.uniform1f(spotlightOnLoc, spotlightOn);
+        
         // PYRAMID POSITIONS
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(pyramidsPositions), gl.STATIC_DRAW);
@@ -189,24 +202,16 @@ window.onload = function init() {
         gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoordsArray), gl.STATIC_DRAW);
         gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0 );
         gl.enableVertexAttribArray(texLoc);
-
-        // PYRAMID UNIFORMS
-        gl.uniform3fv(lightPosLoc, subtract(eye, cameraTranslation));
-        gl.uniform1f(shinLoc, shininess);
-        gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
-        gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
-        gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
-        gl.uniform1f(innerLimitLocation, Math.cos(innerLimit));
-        gl.uniform1f(outerLimitLocation, Math.cos(outerLimit));
-        gl.uniform4fv(viewWorldPos, vec4(cameraTranslation, 1.0) );
-        gl.uniform3fv(lightDirectionLoc, lightDirection);
-        gl.uniform1f(perVertexShadingLoc, perVertexShading);
-        gl.uniform1f(spotlightOnLoc, spotlightOn);
-        
         configureTexture(program, brickImage);
 
         // DRAW PYRAMIDS
         gl.drawArrays(gl.TRIANGLES, 0, pyramidsPositions.length);
+        
+        // PLANE POSITIONS
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(planePositions), gl.STATIC_DRAW);
+        gl.vertexAttribPointer(positionLoc, 4, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(positionLoc);
         
         // PLANE NORMALS
         gl.useProgram(program);
@@ -215,31 +220,11 @@ window.onload = function init() {
         gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(normalLoc);
 
-        // PLANE POSITIONS
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(planePositions), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(positionLoc, 4, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(positionLoc);
-
         // PLANE TEXTURES
         gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoordsArray), gl.STATIC_DRAW);
         gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0 );
         gl.enableVertexAttribArray(texLoc);
-
-        // PLANE UNIFORMS
-        gl.uniform3fv(lightPosLoc, subtract(eye, cameraTranslation));
-        gl.uniform1f(shinLoc, shininess);
-        gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
-        gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
-        gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
-        gl.uniform1f(innerLimitLocation, Math.cos(innerLimit));
-        gl.uniform1f(outerLimitLocation, Math.cos(outerLimit));
-        gl.uniform4fv(viewWorldPos,  vec4(cameraTranslation, 1.0) );        // TODO camera or eye?
-        gl.uniform3fv(lightDirectionLoc, lightDirection);
-        gl.uniform1f(perVertexShadingLoc, perVertexShading);
-        gl.uniform1f(spotlightOnLoc, spotlightOn);
-
         configureTexture(program, sandImage);
 
         // DRAW PLANE
