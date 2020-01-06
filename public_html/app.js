@@ -6,13 +6,11 @@
 var gl;
 var pyramidsPositions = [];
 var pyramidsNormals = [];
-var texCoordsArray = [];
-var planeNormals = [];
 var planePositions = [vec4(0.0, 0.0, 100.0, 1.0), vec4(0.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 0.0, 1.0),
                     vec4(100.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 100.0, 1.0), vec4(0.0, 0.0, 100.0, 1.0)];
+var planeNormals = [];
+var texCoordsArray = [];
 var texCoord = [vec2(0, 0), vec2(0.5, 1), vec2(1, 1), vec2(1, 0)];
-var vertices = [vec4(-0.5, 0.0, 0.5, 1.0), vec4(0.0, 1.0, 0.0, 1.0), vec4(0.5,  0.0, 0.5, 1.0),
-                    vec4(0.5,  0.0,  -0.5, 1.0), vec4(-0.5,  0.0, -0.5, 1.0)];
                 
 var shininess = 100.0;
 var texture;
@@ -171,11 +169,12 @@ window.onload = function init() {
         // negate it because lookAt looks down the -Z axis
         lightDirection = vec3(locationMat[2][0], locationMat[2][1], locationMat[2][2]);      // TODO eksi??
         
+        gl.useProgram(program);
         // UNIFORMS
         gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
         gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
         gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
-        gl.uniform4fv(viewWorldPos, vec4(cameraTranslation, 1.0) );        // TODO camera or eye?
+        gl.uniform4fv(viewWorldPos, vec4(eye, 1.0) );        // TODO camera or eye?
         gl.uniform3fv(lightDirectionLoc, lightDirection);
         gl.uniform3fv(lightPosLoc, lightPosition);
         gl.uniform1f(shinLoc, shininess);
@@ -191,7 +190,6 @@ window.onload = function init() {
         gl.enableVertexAttribArray(positionLoc);
 
         // PYRAMID NORMALS
-        gl.useProgram(program);
         gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(pyramidsNormals), gl.STATIC_DRAW);
         gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 0);
@@ -252,6 +250,7 @@ window.onload = function init() {
                     perVertexShading = 1.0;
                 }
                 break;
+            // page up key
             case 33:
                 console.log("page up");
                 at[1] += 0.1;
@@ -266,26 +265,26 @@ window.onload = function init() {
             // up arrow
             case 38:
                 console.log("up arrow");
-                at[0] += 0.1;
-                cameraTranslation[0] += 0.1;
+                at[2] -= 0.1;
+                cameraTranslation[0] -= 0.1;
                 break;
             // down arrow
             case 40:
                 console.log("down arrow");
-                at[0] -= 0.1;
-                cameraTranslation[0] -= 0.1;
+                at[2] += 0.1;
+                cameraTranslation[2] += 0.1;
                 break;
             // right arrow
             case 39:
                 console.log("right arrow");
-                at[2] += 0.1;
-                cameraTranslation[2] += 0.1;
+                at[0] += 0.1;
+                cameraTranslation[0] += 0.1;
                 break;
             // left arrow
             case 37:
                 console.log("left arrow");
-                at[2] -= 0.1;
-                cameraTranslation[2] -= 0.1;
+                at[0] -= 0.1;
+                cameraTranslation[0] -= 0.1;
                 break;            
             // e key
             case 69: 
