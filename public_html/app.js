@@ -5,12 +5,13 @@
 
 var gl;
 var pyramidsPositions = [];
-var pyramidsNormals = [];
 var pyramidsTexCoords = [];
+var pyramidsNormals = [];
+
 var planePositions = [vec4(0.0, 0.0, 100.0, 1.0), vec4(0.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 0.0, 1.0),
                     vec4(100.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 100.0, 1.0), vec4(0.0, 0.0, 100.0, 1.0)];
-var planeNormals = [];
 var planeTexCoords = [];
+var planeNormals = [];
 var texCoord = [vec2(0, 0), vec2(0.5, 1), vec2(1, 1), vec2(1, 0)];
                 
 var shininess = 100.0;
@@ -27,7 +28,7 @@ var innerLimit = 10 * Math.PI/180.0;
 var outerLimit = 20 * Math.PI/180.0;
 var perVertexShading = 0.0;
 var spotlightOn = 1.0;
-var lightPosition, lightDirection, locationMat;
+var lightDirection, locationMat;
 
 
 function getPyramidVertex (index, i, j) {
@@ -50,30 +51,24 @@ function getPyramidVertex (index, i, j) {
     }
 }
 
-function calculatePlaneDatas () {
-    var v1 = subtract(planePositions[2], planePositions[1]);
-    var v2 = subtract(planePositions[0], planePositions[1]);
-    var normal = cross(v1, v2);
-    normal = vec3(normal);
-    
-    planeNormals.push(normal);
+function calculatePlaneTexCoords () {
     planeTexCoords.push(texCoord[0]);
-    planeNormals.push(normal);
+    planeNormals.push(vec3(33.3, 0.0, 33.3));
+
     planeTexCoords.push(texCoord[2]);
-    planeNormals.push(normal);
+    planeNormals.push(vec3(33.3, 0.0, 33.3));
+
     planeTexCoords.push(texCoord[3]);
-    
-    v1 = subtract(planePositions[5], planePositions[4]);
-    v2 = subtract(planePositions[3], planePositions[4]);
-    normal = cross(v1, v2);
-    normal = vec3(normal);
-    
-    planeNormals.push(normal);
+    planeNormals.push(vec3(33.3, 0.0, 33.3));
+
     planeTexCoords.push(texCoord[0]);
-    planeNormals.push(normal);
+    planeNormals.push(vec3(66.6, 0.0, 66.6));
+
     planeTexCoords.push(texCoord[2]);
-    planeNormals.push(normal);
+    planeNormals.push(vec3(66.6, 0.0, 66.6));
+
     planeTexCoords.push(texCoord[3]);
+    planeNormals.push(vec3(66.6, 0.0, 66.6));
 }
 
 function pyramidTriangle(a, b, c, i, j) {
@@ -122,11 +117,11 @@ window.onload = function init() {
     var canvas = document.getElementById("glCanvas");
     gl = canvas.getContext('webgl2');
     if (!gl) alert( "WebGL 2.0 isn't available");
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     
     calculatePyramidsPositions();
-    calculatePlaneDatas();
+    calculatePlaneTexCoords();
 
     var brickImage = document.getElementById("brickTex");
     var sandImage = document.getElementById("sandTex");
@@ -164,21 +159,18 @@ window.onload = function init() {
 
         eye = vec3(radius * Math.sin(theta) * Math.cos(phi), 
                 radius * Math.sin(theta) * Math.sin(phi), radius * Math.cos(theta));
-        lightPosition = eye;
         eye = add(eye, cameraTranslation);
         modelViewMatrix = lookAt(eye, at, up);
         projectionMatrix = perspective(fovy, aspect, near, far);
         normalMatrix = transpose(inverse(modelViewMatrix));
-        
-        locationMat = lookAt(eye, at, up);
-        lightDirection = vec3(-locationMat[2][0], -locationMat[2][1], -locationMat[2][2]);
+        lightDirection = vec3(-modelViewMatrix[2][0], -modelViewMatrix[2][1], -modelViewMatrix[2][2]);
         
         gl.useProgram(program);
         // UNIFORMS
         gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
         gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
         gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
-        gl.uniform4fv(viewWorldPos, vec4(eye, 1.0) );
+        gl.uniform4fv(viewWorldPos, eye);
         gl.uniform3fv(lightDirectionLoc, lightDirection);
         gl.uniform3fv(lightPosLoc, eye);
         gl.uniform1f(shinLoc, shininess);
