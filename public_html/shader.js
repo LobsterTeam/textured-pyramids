@@ -37,7 +37,7 @@ const vertexShader = `#version 300 es
     void main() {
         
         f_normal = mat3(u_normal_matrix) * i_normal;
-        vec3 surface_world_position = (u_model_view_matrix * i_position).xyz;
+        vec3 surface_world_position = (i_position).xyz;
         f_surface_to_light = u_light_position - surface_world_position;
         f_surface_to_view = u_view_world_position.xyz - surface_world_position;
 
@@ -49,16 +49,18 @@ const vertexShader = `#version 300 es
         
         if (v_per_vertex_shading == 1.0) {
             
+            
             vec3 normal = normalize(f_normal);
             vec3 surface_to_light_direction = normalize(f_surface_to_light);
+            vec3 surfaceToViewDirection = normalize(f_surface_to_view);
             vec3 half_vector = normalize(surface_to_light_direction);
 
             float dot_from_direction = dot(surface_to_light_direction, -v_light_direction);
             float limit_range = f_inner_limit - f_outer_limit;
             float in_light = clamp((dot_from_direction - f_outer_limit) / limit_range, 0.0, 1.0);
-            float light = in_light * dot(normal, -surface_to_light_direction);
+            float light = in_light * dot(normal, surface_to_light_direction);
             float specular = in_light * pow(dot(normal, half_vector), f_shininess);
-
+           
             if (v_spotlight_on == 1.0) {
                 v_color.rgb *= light;
                 v_color.rgb += specular;
@@ -102,12 +104,13 @@ const fragmentShader = `#version 300 es
 
             vec3 normal = normalize(f_normal);
             vec3 surface_to_light_direction = normalize(f_surface_to_light);
+            vec3 surfaceToViewDirection = normalize(f_surface_to_view);
             vec3 half_vector = normalize(surface_to_light_direction);
 
             float dot_from_direction = dot(surface_to_light_direction, -f_light_direction);
             float limit_range = f_inner_limit - f_outer_limit;
             float in_light = clamp((dot_from_direction - f_outer_limit) / limit_range, 0.0, 1.0);
-            float light = in_light * dot(normal, -surface_to_light_direction);
+            float light = in_light * dot(normal, surface_to_light_direction);
             float specular = in_light * pow(dot(normal, half_vector), f_shininess);
 
             
