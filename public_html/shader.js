@@ -52,7 +52,7 @@ const vertexShader = `#version 300 es
             vec3 normal = normalize(f_normal);
             vec3 surface_to_light_direction = normalize(f_surface_to_light);
             vec3 surface_to_view_direction = normalize(f_surface_to_view);
-            vec3 half_vector = normalize(surface_to_light_direction + surface_to_view_direction);
+            vec3 half_vector = normalize(surface_to_light_direction);
 
             float dot_from_direction = dot(surface_to_light_direction, -v_light_direction);
             float limit_range = f_inner_limit - f_outer_limit;

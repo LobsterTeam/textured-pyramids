@@ -7,7 +7,6 @@ var gl;
 var pyramidsPositions = [];
 var pyramidsTexCoords = [];
 var pyramidsNormals = [];
-
 var planePositions = [vec4(0.0, 0.0, 100.0, 1.0), vec4(0.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 0.0, 1.0),
                     vec4(100.0, 0.0, 0.0, 1.0), vec4(100.0, 0.0, 100.0, 1.0), vec4(0.0, 0.0, 100.0, 1.0)];
 var planeTexCoords = [];
@@ -51,24 +50,27 @@ function getPyramidVertex (index, i, j) {
     }
 }
 
-function calculatePlaneTexCoords () {
+function calculatePlaneDatas () {
+    
+    var normal = vec3(33.3, 0.0, 33.3)
     planeTexCoords.push(texCoord[0]);
-    planeNormals.push(vec3(33.3, 0.0, 33.3));
+    planeNormals.push(normal);
 
     planeTexCoords.push(texCoord[2]);
-    planeNormals.push(vec3(33.3, 0.0, 33.3));
+    planeNormals.push(normal);
 
     planeTexCoords.push(texCoord[3]);
-    planeNormals.push(vec3(33.3, 0.0, 33.3));
+    planeNormals.push(normal);
 
+    normal = vec3(66.6, 0.0, 66.6);
     planeTexCoords.push(texCoord[0]);
-    planeNormals.push(vec3(66.6, 0.0, 66.6));
+    planeNormals.push(normal);
 
     planeTexCoords.push(texCoord[2]);
-    planeNormals.push(vec3(66.6, 0.0, 66.6));
+    planeNormals.push(normal);
 
     planeTexCoords.push(texCoord[3]);
-    planeNormals.push(vec3(66.6, 0.0, 66.6));
+    planeNormals.push(normal);
 }
 
 function pyramidTriangle(a, b, c, i, j) {
@@ -121,7 +123,7 @@ window.onload = function init() {
     gl.enable(gl.DEPTH_TEST);
     
     calculatePyramidsPositions();
-    calculatePlaneTexCoords();
+    calculatePlaneDatas();
 
     var brickImage = document.getElementById("brickTex");
     var sandImage = document.getElementById("sandTex");
@@ -170,7 +172,7 @@ window.onload = function init() {
         gl.uniformMatrix4fv(MVLoc, false, flatten(modelViewMatrix));
         gl.uniformMatrix4fv(projectionLoc, false, flatten(projectionMatrix));
         gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
-        gl.uniform4fv(viewWorldPos, eye);
+        gl.uniform3fv(viewWorldPos, eye);
         gl.uniform3fv(lightDirectionLoc, lightDirection);
         gl.uniform3fv(lightPosLoc, eye);
         gl.uniform1f(shinLoc, shininess);
